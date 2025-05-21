@@ -1,0 +1,93 @@
+# --- Java Build Output ---
+target/
+build/
+
+# --- Maven Wrapper ---
+.mvn/
+!**/maven-wrapper.jar
+mvnw
+mvnw.cmd
+
+# --- Logs ---
+*.log
+logs/
+*.out
+
+# --- IDEs ---
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+.apt_generated/
+.factorypath/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# --- OS / System files ---
+.DS_Store
+Thumbs.db
+
+# --- PostgreSQL dumps or temp data (if used) ---
+*.dump
+*.sql
+pgdata/
+
+# --- Environment Config ---
+.env
+*.env
+*.env.local
+*.secret
+*.key
+*.pem
+
+# --- Docker ---
+*.pid
+docker-compose.override.yml
+
+# --- IntelliJ & Spring Tool Suite cache ---
+out/
+
+# --- API documentation ---
+/docs/
+openapi.yaml
+swagger.yaml
+swagger-ui/
+
+# --- Flyway migration checksum files (optional if used) ---
+*.checksum
+
+# --- Coverage / Testing ---
+.coverage
+coverage/
+*.exec
+jacoco.exec
+
+# --- Misc ---
+*.swp
+*.swo
+*.bak
+*~
+
+# --- Git itself ---
+*.orig
+
+# --- Local dev overrides ---
+application-local.yml
+application-dev.yml
