@@ -1,16 +1,3 @@
--- USERS
-CREATE TABLE users
-(
-    id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    member_id  VARCHAR(255) NOT NULL,
-    username   VARCHAR(255),
-    name       VARCHAR(255),
-    role       VARCHAR(50)  NOT NULL, -- USER, LEADER, ADMIN, SUPER_ADMIN
-    is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP             DEFAULT now(),
-    updated_at TIMESTAMP             DEFAULT now()
-);
-
 -- TROOPS
 CREATE TABLE troops
 (
@@ -21,13 +8,18 @@ CREATE TABLE troops
     updated_at TIMESTAMP             DEFAULT now()
 );
 
--- USER-TROOP RELATIONSHIP (Many-to-Many)
-CREATE TABLE user_troops
+-- USERS
+CREATE TABLE users
 (
-    user_id  INTEGER NOT NULL,
-    troop_id INTEGER NOT NULL,
-    PRIMARY KEY (user_id, troop_id),
-    FOREIGN KEY (user_id) REFERENCES users (id),
+    id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    member_id  VARCHAR(255) NOT NULL,
+    username   VARCHAR(255),
+    name       VARCHAR(255),
+    role       VARCHAR(50)  NOT NULL, -- USER, LEADER, ADMIN, SUPER_ADMIN
+    is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
+    troop_id   INTEGER,               -- FK to troops(id)
+    created_at TIMESTAMP             DEFAULT now(),
+    updated_at TIMESTAMP             DEFAULT now(),
     FOREIGN KEY (troop_id) REFERENCES troops (id)
 );
 
