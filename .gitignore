@@ -46,7 +46,6 @@ Thumbs.db
 
 # --- PostgreSQL dumps or temp data (if used) ---
 *.dump
-*.sql
 pgdata/
 
 # --- Environment Config ---

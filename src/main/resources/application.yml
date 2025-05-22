@@ -1,11 +1,13 @@
 spring:
+  profiles:
+    active: dev
   datasource:
-    url: jdbc:postgresql://localhost:5432/localdev_db
-    username: postgres_user
-    password: postgres_pass
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/localdev_db}
+    username: ${DB_USER:postgres_user}
+    password: ${DB_PASSWORD:postgres_pass}
   jpa:
     hibernate:
-      ddl-auto: update  # `validate` for production or `update` during development
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
