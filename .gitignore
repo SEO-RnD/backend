@@ -64,7 +64,6 @@ docker-compose.override.yml
 out/
 
 # --- API documentation ---
-/docs/
 openapi.yaml
 swagger.yaml
 swagger-ui/
