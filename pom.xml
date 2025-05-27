@@ -47,6 +47,10 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
@@ -144,10 +148,12 @@
                 <version>2.44.0</version>
                 <configuration>
                     <java>
-                        <googleJavaFormat/>
-                        <removeUnusedImports/>
                         <importOrder>
-                            <order>java,javax,org,com,gr</order>
+                            <order>jakarta</order>
+                            <order>java</order>
+                            <order>javax</order>
+                            <order>org</order>
+                            <order>com</order>
                         </importOrder>
                     </java>
                 </configuration>
