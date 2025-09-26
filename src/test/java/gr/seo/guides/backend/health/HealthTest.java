@@ -13,14 +13,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class HealthControllerTest {
+class HealthTest {
 
   @Autowired
   private MockMvc mockMvc;
 
   @Test
-  void health_returnsUp() throws Exception {
-    mockMvc.perform(get("/api/health"))
+  void actuator_health_returnsUp() throws Exception {
+    mockMvc.perform(get("/actuator/health"))
            .andExpect(status().isOk())
            .andExpect(jsonPath("$.status", equalTo("UP")));
   }
