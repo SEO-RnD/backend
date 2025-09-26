@@ -20,8 +20,26 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build & test
+      - name: Build & test (Spring profile = test)
         run: ./mvnw -B verify -Dspring.profiles.active=test
+
+      # Συλλογή μετρήσεων tests από τα surefire XMLs
+      - name: Summarize test results
+        if: always()
+        id: tests
+        run: |
+          set -e
+          if [ -d target/surefire-reports ]; then
+            read TESTS FAILURES ERRORS SKIPPED <<< "$(grep -h '<testsuite ' target/surefire-reports/*.xml \
+              | sed -E 's/.*tests="([0-9]+)".*failures="([0-9]+)".*errors="([0-9]+)".*skipped="([0-9]+)".*/\1 \2 \3 \4/' \
+              | awk '{t+=$1; f+=$2; e+=$3; s+=$4} END {print t, f, e, s}')"
+          else
+            TESTS=0; FAILURES=0; ERRORS=0; SKIPPED=0
+          fi
+          echo "tests=$TESTS" >> $GITHUB_OUTPUT
+          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
+          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
 
       - name: Upload surefire reports
         if: failure()
@@ -29,3 +47,53 @@ jobs:
         with:
           name: surefire-reports
           path: target/surefire-reports
+
+      - name: Notify Discord on failure (embed)
+        if: failure()
+        run: |
+          TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          PAYLOAD=$(cat <<EOF
+          {
+            "username": "CI Bot",
+            "embeds": [{
+              "title": "Build failed ❌",
+              "url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
+              "description": "Repository: **${GITHUB_REPOSITORY}**\\nRef: **${GITHUB_REF}**\\nCommit: **${GITHUB_SHA}**",
+              "color": 16711680,
+              "fields": [
+                {"name": "Workflow", "value": "${GITHUB_WORKFLOW}", "inline": true},
+                {"name": "Job", "value": "${GITHUB_JOB}", "inline": true},
+                {"name": "Actor", "value": "${GITHUB_ACTOR}", "inline": true},
+                {"name": "Tests", "value": "Total: ${{ steps.tests.outputs.tests }}\\nFailures: ${{ steps.tests.outputs.failures }}\\nErrors: ${{ steps.tests.outputs.errors }}\\nSkipped: ${{ steps.tests.outputs.skipped }}", "inline": false}
+              ],
+              "timestamp": "$TS"
+            }]
+          }
+          EOF
+          )
+          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Notify Discord on success (embed)
+        if: success()
+        run: |
+          TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          PAYLOAD=$(cat <<EOF
+          {
+            "username": "CI Bot",
+            "embeds": [{
+              "title": "Build passed ✅",
+              "url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
+              "description": "Repository: **${GITHUB_REPOSITORY}**\\nRef: **${GITHUB_REF}**\\nCommit: **${GITHUB_SHA}**",
+              "color": 52224,
+              "fields": [
+                {"name": "Workflow", "value": "${GITHUB_WORKFLOW}", "inline": true},
+                {"name": "Job", "value": "${GITHUB_JOB}", "inline": true},
+                {"name": "Actor", "value": "${GITHUB_ACTOR}", "inline": true},
+                {"name": "Tests", "value": "Total: ${{ steps.tests.outputs.tests }}\\nFailures: ${{ steps.tests.outputs.failures }}\\nErrors: ${{ steps.tests.outputs.errors }}\\nSkipped: ${{ steps.tests.outputs.skipped }}", "inline": false}
+              ],
+              "timestamp": "$TS"
+            }]
+          }
+          EOF
+          )
+          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "${{ secrets.DISCORD_WEBHOOK }}"
