@@ -23,23 +23,24 @@ jobs:
       - name: Build & test (Spring profile = test)
         run: ./mvnw -B verify -Dspring.profiles.active=test
 
-      # Συλλογή μετρήσεων tests από τα surefire XMLs
       - name: Summarize test results
         if: always()
         id: tests
         run: |
           set -e
-          if [ -d target/surefire-reports ]; then
-            read TESTS FAILURES ERRORS SKIPPED <<< "$(grep -h '<testsuite ' target/surefire-reports/*.xml \
-              | sed -E 's/.*tests="([0-9]+)".*failures="([0-9]+)".*errors="([0-9]+)".*skipped="([0-9]+)".*/\1 \2 \3 \4/' \
-              | awk '{t+=$1; f+=$2; e+=$3; s+=$4} END {print t, f, e, s}')"
+          DIR="target/surefire-reports"
+          if [ -d "$DIR" ] && ls "$DIR"/*.xml >/dev/null 2>&1; then
+            tests=$(grep -hoP 'tests="\K\d+' "$DIR"/*.xml | awk '{s+=$1} END{print s+0}')
+            failures=$(grep -hoP 'failures="\K\d+' "$DIR"/*.xml | awk '{s+=$1} END{print s+0}')
+            errors=$(grep -hoP 'errors="\K\d+' "$DIR"/*.xml | awk '{s+=$1} END{print s+0}')
+            skipped=$(grep -hoP 'skipped="\K\d+' "$DIR"/*.xml | awk '{s+=$1} END{print s+0}')
           else
-            TESTS=0; FAILURES=0; ERRORS=0; SKIPPED=0
+            tests=0; failures=0; errors=0; skipped=0
           fi
-          echo "tests=$TESTS" >> $GITHUB_OUTPUT
-          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
-          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
-          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "tests=$tests" >> $GITHUB_OUTPUT
+          echo "failures=$failures" >> $GITHUB_OUTPUT
+          echo "errors=$errors" >> $GITHUB_OUTPUT
+          echo "skipped=$skipped" >> $GITHUB_OUTPUT
 
       - name: Upload surefire reports
         if: failure()
