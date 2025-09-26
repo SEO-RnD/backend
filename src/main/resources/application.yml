@@ -1,0 +1,17 @@
+spring:
+  profiles:
+    active: dev
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/seo_guides
+    username: seo
+    password: seo
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
