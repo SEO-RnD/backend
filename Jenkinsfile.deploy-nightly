@@ -20,9 +20,10 @@ pipeline {
   }
 
   environment {
-    DISCORD_WEBHOOK = credentials('discord_webhook') // configure this in Jenkins
-    APP_NAME = "guides-app-backend"
-    USERNAME_NAME = "thanosmourtk"
+    DISCORD_WEBHOOK = credentials('discord_webhook') // Discord webhook
+    DOCKER_PAT      = credentials('dockerhub_pat')   // Docker Hub PAT
+    APP_NAME        = "guides-app-backend"
+    USERNAME_NAME   = "thanosmourtk"
   }
 
   stages {
@@ -34,11 +35,15 @@ pipeline {
 
           sh """
             set -eux
+            echo "${DOCKER_PAT}" | docker login -u "${USERNAME_NAME}" --password-stdin
+
             docker build --pull -f Dockerfile.prod -t ${IMAGE} .
             docker push ${IMAGE}
 
             docker tag ${IMAGE} ${USERNAME_NAME}/${APP_NAME}:nightly
             docker push ${USERNAME_NAME}/${APP_NAME}:nightly
+
+            docker logout
           """
         }
       }
