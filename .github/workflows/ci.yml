@@ -4,10 +4,18 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      # Κάνουμε expose το secret ως env var για να μπορούμε να το τσεκάρουμε σε if:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
     steps:
       - name: Checkout
@@ -50,7 +58,7 @@ jobs:
           path: target/surefire-reports
 
       - name: Notify Discord on failure (embed)
-        if: failure()
+        if: ${{ failure() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && env.DISCORD_WEBHOOK != '' }}
         run: |
           TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PAYLOAD=$(cat <<EOF
@@ -72,10 +80,10 @@ jobs:
           }
           EOF
           )
-          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "${{ secrets.DISCORD_WEBHOOK }}"
+          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
 
       - name: Notify Discord on success (embed)
-        if: success()
+        if: ${{ success() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && env.DISCORD_WEBHOOK != '' }}
         run: |
           TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PAYLOAD=$(cat <<EOF
@@ -97,4 +105,4 @@ jobs:
           }
           EOF
           )
-          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "${{ secrets.DISCORD_WEBHOOK }}"
+          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
