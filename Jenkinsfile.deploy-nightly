@@ -1,0 +1,68 @@
+pipeline {
+  agent {
+    docker {
+      image 'thanosmourtk/dind-java-mvn:java21-mvn4'
+      args '''
+        --privileged
+        --cgroupns=host
+        -v /sys/fs/cgroup:/sys/fs/cgroup:rw
+        -e DOCKER_TLS_CERTDIR=
+        -v dind-data:/var/lib/docker
+        -v $WORKSPACE/.m2:/root/.m2
+      '''
+      reuseNode true
+    }
+  }
+
+  triggers {
+    // Nightly build at 02:00
+    cron('H 2 * * *')
+  }
+
+  environment {
+    DISCORD_WEBHOOK = credentials('discord-webhook') // configure this in Jenkins
+    APP_NAME = "guides-app-backend"
+    USERNAME_NAME = "thanosmourtk"
+  }
+
+  stages {
+    stage('Nightly Build & Push') {
+      steps {
+        script {
+          def dateTag = new Date().format("yyyyMMdd-HHmm")
+          env.IMAGE = "${USERNAME_NAME}/${APP_NAME}:nightly-${dateTag}"
+
+          sh """
+            set -eux
+            docker build --pull -f Dockerfile.prod -t ${IMAGE} .
+            docker push ${IMAGE}
+
+            docker tag ${IMAGE} ${USERNAME_NAME}/${APP_NAME}:nightly
+            docker push ${USERNAME_NAME}/${APP_NAME}:nightly
+          """
+        }
+      }
+    }
+
+    stage('Notify Discord') {
+      steps {
+        script {
+          sh """
+          curl -sS -H "Content-Type: application/json" -X POST \\
+            -d '{
+              "embeds": [{
+                "title": "✅ Nightly Image Built",
+                "color": 3066993,
+                "fields": [
+                  {"name": "App", "value": "${APP_NAME}", "inline": true},
+                  {"name": "Image", "value": "${IMAGE}", "inline": false}
+                ],
+                "footer": {"text": "Jenkins Nightly Build"}
+              }]
+            }' \${DISCORD_WEBHOOK}
+          """
+        }
+      }
+    }
+  }
+}
