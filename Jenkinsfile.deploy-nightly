@@ -24,6 +24,12 @@ pipeline {
     DOCKER_PAT      = credentials('dockerhub_pat')   // Docker Hub PAT
     APP_NAME        = "guides-app-backend"
     USERNAME_NAME   = "thanosmourtk"
+
+    // Portainer credentials
+    PORTAINER_URL     = credentials('portainer_server')
+    PORTAINER_USER    = credentials('portainer_user')
+    PORTAINER_PASS    = credentials('portainer_pass')
+    STACK_ID          = credentials('portainer_stack_id')
   }
 
   stages {
@@ -44,6 +50,24 @@ pipeline {
             docker push ${USERNAME_NAME}/${APP_NAME}:nightly
 
             docker logout
+          """
+        }
+      }
+    }
+
+    stage('Deploy to Portainer') {
+      steps {
+        script {
+          sh """
+          # Authenticate with Portainer
+          TOKEN=$(curl -s -X POST -H "Content-Type: application/json" \\
+            -d '{"Username": "${PORTAINER_USER}", "Password": "${PORTAINER_PASS}"}' \\
+            ${PORTAINER_URL}/auth | jq -r .jwt)
+
+          # Trigger redeploy of stack
+          curl -s -X POST -H "Authorization: Bearer $TOKEN" \\
+            -H "Content-Type: application/json" \\
+            ${PORTAINER_URL}/stacks/${STACK_ID}/git/redeploy
           """
         }
       }
