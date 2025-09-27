@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'dind-java-mvn:java21-mvn4'
+      image 'thanosmourtk/dind-java-mvn:java21-mvn4'
       args '''
         --privileged
         --cgroupns=host
