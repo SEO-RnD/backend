@@ -24,6 +24,7 @@ pipeline {
     DOCKER_PAT      = credentials('dockerhub_pat')   // Docker Hub PAT
     APP_NAME        = "guides-app-backend"
     USERNAME_NAME   = "thanosmourtk"
+    DATE_TAG        = "${new Date().format('yyyyMMdd-HHmm')}" // global date tag
 
     // Portainer credentials
     PORTAINER_URL     = credentials('portainer_server')
@@ -36,8 +37,7 @@ pipeline {
     stage('Nightly Build & Push') {
       steps {
         script {
-          def dateTag = new Date().format("yyyyMMdd-HHmm")
-          env.IMAGE = "${USERNAME_NAME}/${APP_NAME}:nightly-${dateTag}"
+          env.IMAGE = "${USERNAME_NAME}/${APP_NAME}:nightly-${DATE_TAG}"
 
           sh """
             set -eux
@@ -59,15 +59,30 @@ pipeline {
       steps {
         script {
           sh """
-          # Authenticate with Portainer
-          TOKEN=$(curl -s -X POST -H "Content-Type: application/json" \\
-            -d '{"Username": "${PORTAINER_USER}", "Password": "${PORTAINER_PASS}"}' \\
-            ${PORTAINER_URL}/auth | jq -r .jwt)
+          set -euo pipefail
 
-          # Trigger redeploy of stack
-          curl -s -X POST -H "Authorization: Bearer $TOKEN" \\
+          # Authenticate with Portainer
+          TOKEN=\$(curl -s -X POST -H "Content-Type: application/json" \\
+            -d '{\"Username\":\"${PORTAINER_USER}\",\"Password\":\"${PORTAINER_PASS}\"}' \\
+            ${PORTAINER_URL}/api/auth | jq -r .jwt)
+
+          if [ -z "\$TOKEN" ] || [ "\$TOKEN" = "null" ]; then
+            echo '❌ Failed to obtain Portainer token' >&2
+            exit 1
+          fi
+
+          # Update docker-compose.yml with new DATE_TAG for this app
+          UPDATED_YML=\$(sed -E "s|(image:\\s*${USERNAME_NAME}/${APP_NAME}:)nightly\\b|\\1nightly-${DATE_TAG}|g" docker-compose.prod.yml)
+
+          # Escape YAML for JSON payload
+          PAYLOAD=\$(printf '%s' "\$UPDATED_YML" | jq -Rs .)
+
+          # Update stack in Portainer (endpointId=3)
+          curl -sS -X PUT \\
+            -H "Authorization: Bearer \$TOKEN" \\
             -H "Content-Type: application/json" \\
-            ${PORTAINER_URL}/stacks/${STACK_ID}/git/redeploy
+            --data "{\\"Prune\\":true,\\"StackFileContent\\":\$PAYLOAD}" \\
+            "${PORTAINER_URL}/api/stacks/${STACK_ID}?endpointId=3"
           """
         }
       }
