@@ -17,20 +17,32 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh '''
-          set -eux
-          mvn clean install -B
-        '''
+        sh 'set -eux; mvn clean install -B'
       }
     }
-  }
+    stage('Notify Discord') {
+      when { expression { true } }     // always run
+      steps {
+        script {
+          def ok    = (currentBuild.currentResult ?: 'SUCCESS') == 'SUCCESS'
+          def title = ok ? 'Jenkins: Build passed ✅' : 'Jenkins: Build failed ❌'
+          def color = ok ? 3066993 /*green*/ : 15158332 /*red*/
 
-  post {
-    success {
-      echo "✅ Maven build finished successfully"
-    }
-    failure {
-      echo "❌ Maven build failed"
+          withCredentials([string(credentialsId: 'discord_webhook', variable: 'DISCORD_WEBHOOK')]) {
+            sh """
+              set -eu
+              # build a tiny embed payload (no jq needed)
+              TITLE=\$(printf %s '${title}' | sed 's/\"/\\\\\"/g')
+              URL="\${BUILD_URL}"
+              printf '{"embeds":[{"title":"%s","url":"%s","color":%s}]}' \
+                     "\$TITLE" "\$URL" "${color}" > /tmp/payload.json
+
+              curl -sS -H 'Content-Type: application/json' \
+                   --data @/tmp/payload.json "\$DISCORD_WEBHOOK" >/dev/null
+            """
+          }
+        }
+      }
     }
   }
 }
