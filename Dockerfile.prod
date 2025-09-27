@@ -1,0 +1,46 @@
+# ---------- BUILD STAGE ----------
+# Use JDK 21 and fetch Maven 4.x explicitly (works even if the repo's wrapper is older)
+FROM eclipse-temurin:21-jdk AS build
+
+# Install Maven 4 (pin the version you want)
+ARG MAVEN_VERSION=4.0.0-rc-4
+RUN set -eux; \
+    curl -fsSL https://archive.apache.org/dist/maven/maven-4/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
+      -o /tmp/maven.tgz; \
+    tar -xzf /tmp/maven.tgz -C /opt; \
+    ln -s /opt/apache-maven-${MAVEN_VERSION} /opt/maven; \
+    rm /tmp/maven.tgz
+ENV PATH="/opt/maven/bin:${PATH}"
+
+# Cache deps first
+WORKDIR /app
+COPY pom.xml ./
+# (Optional) copy only deps sections if your pom is big
+RUN mvn -B -e -DskipTests dependency:go-offline
+
+# Build
+COPY . .
+# If your build produces a single fat jar (Spring Boot), this will work:
+RUN mvn -B -DskipTests clean package
+
+# ---------- RUNTIME STAGE ----------
+# Ultra-slim Java 21 runtime
+FROM eclipse-temurin:21-jre
+
+# Security: run as non-root
+RUN useradd -r -u 10001 -g root appuser
+WORKDIR /app
+
+# Copy the fat jar (adjust name if your artifact differs)
+# If your artifactId is different, you can also glob:
+# COPY --from=build /app/target/*-SNAPSHOT.jar /app/app.jar
+COPY --from=build /app/target/*.jar /app/app.jar
+
+# Minimal JVM flags; tweak for your service
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=5 \
+  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+
+USER appuser
+ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]
