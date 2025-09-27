@@ -20,7 +20,7 @@ pipeline {
   }
 
   environment {
-    DISCORD_WEBHOOK = credentials('discord-webhook') // configure this in Jenkins
+    DISCORD_WEBHOOK = credentials('discord_webhook') // configure this in Jenkins
     APP_NAME = "guides-app-backend"
     USERNAME_NAME = "thanosmourtk"
   }
