@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: seo-guides-db
+    environment:
+      POSTGRES_USER: seo
+      POSTGRES_PASSWORD: seo
+      POSTGRES_DB: seo_guides
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - seo-net
+
+  app:
+    image: thanosmourtk/guides-app-backend:nightly   # or :prod when ready
+    container_name: seo-guides-app
+    depends_on:
+      - db
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/seo_guides
+      SPRING_DATASOURCE_USERNAME: seo
+      SPRING_DATASOURCE_PASSWORD: seo
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_FLYWAY_ENABLED: "false"
+    ports:
+      - "8080:8080"
+    networks:
+      - seo-net
+    restart: always
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: seo-guides-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    networks:
+      - seo-net
+
+volumes:
+  db_data:
+
+networks:
+  seo-net:
+    driver: bridge
